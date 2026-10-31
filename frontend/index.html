@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>BidMatrix — Real-Time Second-Price Auctions</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Top utility ribbon: live engine status -->
+  <div class="utility-bar">
+    <div class="wrap utility-wrap">
+      <div class="server-status-pill">
+        <span class="pulse-dot offline" id="server-dot"></span>
+        <span id="server-status-text">Connecting to BidMatrix engine…</span>
+      </div>
+      <div style="display:flex;gap:16px;align-items:center;">
+        <span>Max-BST bid tree</span>
+        <span>•</span>
+        <span>Vickrey second-price settlement</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main navigation -->
+  <header>
+    <div class="wrap">
+      <nav>
+        <a class="brand-group" href="#top" aria-label="bidmatrix home">
+          <img class="brand-logo" src="img/logo-mark-word.png" alt="bidmatrix">
+        </a>
+
+        <div class="nav-tabs" role="tablist">
+          <button class="nav-tab-btn active" data-tab="live">🔥 Live</button>
+          <button class="nav-tab-btn" data-tab="closed">🏆 Results</button>
+          <button class="nav-tab-btn" data-tab="dashboard">📊 Dashboard</button>
+          <button class="nav-tab-btn" data-tab="create">➕ Create</button>
+          <button class="nav-tab-btn" data-tab="process">🛡️ How it works</button>
+        </div>
+
+        <div class="header-actions">
+          <!-- Active bidder -->
+          <div class="user-pill" title="Choose who you are bidding as">
+            <div class="user-avatar" id="active-user-avatar">?</div>
+            <select id="user-select" class="user-select" aria-label="Active bidder">
+              <option value="">Loading…</option>
+            </select>
+            <button class="btn alt btn-sm add-user-btn" id="add-user-btn" title="Register a new bidder" aria-label="Register a new bidder">+</button>
+          </div>
+
+          <!-- Notifications -->
+          <div style="position:relative;">
+            <button class="bell-btn" id="bell-btn" aria-label="Notifications" title="Real-time events">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+              </svg>
+              <span class="bell-badge" id="bell-count" hidden>0</span>
+            </button>
+            <div class="notification-dropdown" id="notification-dropdown">
+              <div class="notif-header">
+                <h4>Live Notifications</h4>
+                <span id="notif-total" style="font-size:11px;color:var(--mute);">0 events</span>
+              </div>
+              <div id="notif-list">
+                <div class="notif-empty">No notifications yet</div>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn-icon" id="theme-toggle" title="Toggle dark / light mode" aria-label="Toggle theme">🌓</button>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap" id="top">
+
+    <!-- ============ TAB: LIVE AUCTIONS ============ -->
+    <section class="tab-section active" id="tab-live">
+
+      <div class="hero">
+        <div>
+          <h1>Bid in real time. Pay the fair price.</h1>
+          <p class="lead">
+            Every auction on BidMatrix runs on a live Max-BST bid tree. The highest bidder wins,
+            but pays only the <b>second-highest bid</b> — so you can always bid what an item is truly worth to you.
+          </p>
+          <div class="hero-ctas">
+            <a class="btn primary" href="#grid">Browse live lots</a>
+            <button class="btn alt" data-goto="create">List an item</button>
+            <button class="btn alt" data-goto="closed">View Vickrey results</button>
+          </div>
+          <div class="hero-stats-row">
+            <div class="hero-stat">
+              <strong id="hero-live">0 live lots</strong>
+              <span>Closing automatically</span>
+            </div>
+            <div class="hero-stat">
+              <strong id="hero-bids">0 bids placed</strong>
+              <span>Across all live auctions</span>
+            </div>
+            <div class="hero-stat">
+              <strong>Vickrey second-price</strong>
+              <span>Truth-telling bidding</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="hero-card-preview" id="hero-card">
+            <div class="hero-preview-img" style="display:grid;place-items:center;color:var(--mute);font-weight:600;">Waiting for the first live lot…</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <div class="chips" id="chips">
+          <button aria-pressed="true"  data-filter="all">All Lots (<span id="count-all">0</span>)</button>
+          <button aria-pressed="false" data-filter="electronics">Electronics</button>
+          <button aria-pressed="false" data-filter="collectibles">Collectibles</button>
+          <button aria-pressed="false" data-filter="art">Art</button>
+          <button aria-pressed="false" data-filter="vehicles">Vehicles</button>
+        </div>
+        <div class="search-box">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>
+          <input type="text" id="lot-search" placeholder="Search title or description…" aria-label="Search auctions">
+        </div>
+      </div>
+
+      <div class="grid" id="grid">
+        <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+      </div>
+    </section>
+
+    <!-- ============ TAB: CLOSED & VICKREY RESULTS ============ -->
+    <section class="tab-section" id="tab-closed" style="padding:32px 0;">
+      <div class="section-head">
+        <div>
+          <h2>Closed Auctions &amp; Vickrey Settlements</h2>
+          <p>Settled auctions with the final second-price calculation and how much each winner saved.</p>
+        </div>
+        <button class="btn alt btn-sm" id="refresh-closed">Refresh results</button>
+      </div>
+
+      <div class="table-container">
+        <div class="vickrey-banner">
+          <span style="font-size:18px;">💡</span>
+          <div>
+            <strong>How the Vickrey second-price rule works:</strong>
+            the highest bidder wins, but pays only the <em>second-highest bid</em>.
+            Bidding your true maximum can never cost you more than the price needed to beat the next bidder.
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>Auction Item</th>
+                <th>Winning Bidder</th>
+                <th>Highest Bid</th>
+                <th>Settled Price (Vickrey)</th>
+                <th>Winner Saved</th>
+                <th>Total Bids</th>
+                <th>Status</th>
+                <th>BST Record</th>
+              </tr>
+            </thead>
+            <tbody id="closed-table-body">
+              <tr class="empty-row"><td colspan="8">Loading settled auctions…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TAB: BIDDER DASHBOARD ============ -->
+    <section class="tab-section" id="tab-dashboard" style="padding:32px 0;">
+      <div class="section-head">
+        <div>
+          <h2>Bidder Dashboard — <span id="dash-user-name">…</span></h2>
+          <p>Your top bid on every auction and where it stands, built from the bid history linked list in the C++ backend.</p>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-card-label">Total Bids Placed</div>
+          <div class="stat-card-val" id="stat-total-bids">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Leading / Won</div>
+          <div class="stat-card-val win" id="stat-winning-bids">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Outbid / Lost</div>
+          <div class="stat-card-val outbid" id="stat-outbid-bids">0</div>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;">
+          <h4 style="font-size:15px;">Bid History (one row per auction)</h4>
+          <span style="font-size:12px;color:var(--mute);">Refreshes while this tab is open</span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>Auction</th>
+                <th>Your Top Bid</th>
+                <th>Last Bid</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="dash-history-body">
+              <tr class="empty-row"><td colspan="5">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TAB: CREATE AUCTION ============ -->
+    <section class="tab-section" id="tab-create" style="padding:32px 0;">
+      <div class="create-form-wrap">
+        <div style="margin-bottom:20px;">
+          <h2>List an Item for Auction</h2>
+          <p style="color:var(--mute);font-size:14px;margin-top:4px;">
+            Your listing is inserted into the Min-BST expiry scheduler and gets its own Max-BST bid tree the moment you publish.
+          </p>
+        </div>
+
+        <form id="create-auction-form">
+          <div class="form-group">
+            <label for="create-title">Item Title *</label>
+            <input type="text" id="create-title" maxlength="120" placeholder="e.g. Vintage Mechanical Watch" required>
+          </div>
+
+          <div class="form-group">
+            <label for="create-desc">Description *</label>
+            <textarea id="create-desc" rows="3" maxlength="500" placeholder="Condition, specifications, what's included…" required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="create-img">Image URL <span style="color:var(--mute);font-weight:500;">(optional)</span></label>
+            <input type="url" id="create-img" placeholder="https://images.unsplash.com/photo-…">
+            <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;align-items:center;">
+              <span style="font-size:11px;color:var(--mute);">Quick presets:</span>
+              <button type="button" class="btn alt btn-sm" data-img="https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=800&auto=format&fit=crop">Watch</button>
+              <button type="button" class="btn alt btn-sm" data-img="https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=800&auto=format&fit=crop">Laptop</button>
+              <button type="button" class="btn alt btn-sm" data-img="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&auto=format&fit=crop">Camera</button>
+              <button type="button" class="btn alt btn-sm" data-img="https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=800&auto=format&fit=crop">Art</button>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="create-price">Starting Price ($) *</label>
+              <input type="number" id="create-price" min="0.01" step="0.01" placeholder="100.00" required>
+            </div>
+            <div class="form-group">
+              <label for="create-duration">Duration (seconds) *</label>
+              <input type="number" id="create-duration" min="30" step="30" value="300" required>
+              <span style="font-size:11px;color:var(--mute);margin-top:2px;display:block;">300 s = 5 min · 600 s = 10 min</span>
+            </div>
+          </div>
+
+          <button type="submit" class="btn primary" id="create-submit" style="width:100%;padding:12px;margin-top:10px;">
+            🚀 Create &amp; Start Auction
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ============ TAB: HOW IT WORKS ============ -->
+    <section class="tab-section" id="tab-process" style="padding:32px 0;">
+      <div class="section-head">
+        <div>
+          <h2>The BidMatrix Mechanism</h2>
+          <p>Live bidding, automatic closing, and mathematically fair second-price settlement.</p>
+        </div>
+      </div>
+
+      <div class="steps">
+        <div class="step-card">
+          <div class="step-num">Step 1</div>
+          <h3>Pick a bidder</h3>
+          <p>Choose an existing bidder from the header, or register a new one. Each bidder keeps a full bid history.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">Step 2</div>
+          <h3>Place a bid</h3>
+          <p>Bid with one click or enter a custom amount. Every bid must beat the current highest and is inserted into the auction's Max-BST.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">Step 3</div>
+          <h3>Timer expires</h3>
+          <p>A background thread watches the Min-BST of closing times and closes each auction the second its timer runs out.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">Step 4</div>
+          <h3>Vickrey settlement</h3>
+          <p>The rightmost node wins. The winner pays the second-highest bid, read from the in-order predecessor in the tree.</p>
+        </div>
+      </div>
+
+      <div style="margin-top:48px;">
+        <h3 style="font-size:22px;margin-bottom:16px;">Frequently Asked Questions</h3>
+        <details open>
+          <summary>What is a Vickrey second-price auction and why use it?</summary>
+          <p>The highest bidder wins but pays the second-highest bid. Because your own bid never sets your price, the best strategy is simply to bid your true valuation — no sniping games.</p>
+        </details>
+        <details>
+          <summary>What if only one person bids?</summary>
+          <p>With a single bidder there is no second-highest bid, so the winner pays their own bid. If nobody bids, the auction closes with no winner.</p>
+        </details>
+        <details>
+          <summary>Which data structures power the backend?</summary>
+          <p>A Max-BST per auction for bids, a global Min-BST for closing times, a FIFO queue for notifications, and a hand-written linked list for each user's bid history, all implemented by hand in C++.</p>
+        </details>
+        <details>
+          <summary>How big does each new bid have to be?</summary>
+          <p>Any amount above the current highest bid (or above the starting price for the first bid). The one-click button uses a sensible step based on the current price.</p>
+        </details>
+      </div>
+    </section>
+
+  </main>
+
+  <dialog id="dlg" aria-label="Dialog"><div id="dc"></div></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <footer>
+    <div class="wrap footer-inner">
+      <div>
+        <img class="footer-logo" src="img/logo-full.png" alt="bidmatrix — bid management platform">
+        <p style="font-size:13px;color:var(--mute);margin:4px 0 0;">Real-time auction platform powered by a C++ data-structure engine.</p>
+      </div>
+      <div style="display:flex;gap:18px;font-size:13px;color:var(--mute);flex-wrap:wrap;">
+        <span>Max-BST Bids</span>
+        <span>Min-BST Expiry</span>
+        <span>FIFO Queue Events</span>
+        <span>LinkedList User History</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

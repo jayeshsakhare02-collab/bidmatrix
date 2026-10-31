@@ -1,0 +1,23 @@
+# Compiled binaries and object files
+*.exe
+*.o
+*.obj
+*.dll
+*.so
+*.dylib
+
+# Visual Studio / IDE files
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+
+# OS generated files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Temporary files & logs
+*.log
+*.tmp
