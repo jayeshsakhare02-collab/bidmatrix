@@ -134,11 +134,31 @@ private:
     // ── Read a file from disk ─────────────────────────────────────────────
     static bool readFileContents(const std::string& path, std::string& out) {
         std::ifstream file(path.c_str(), std::ios::binary);
-        if (!file.is_open()) return false;
-        std::ostringstream ss;
-        ss << file.rdbuf();
-        out = ss.str();
-        return true;
+        if (file.is_open()) {
+            std::ostringstream ss;
+            ss << file.rdbuf();
+            out = ss.str();
+            return true;
+        }
+
+        // Try relative to executable directory
+        char exePath[MAX_PATH];
+        if (GetModuleFileNameA(NULL, exePath, MAX_PATH)) {
+            std::string dir(exePath);
+            size_t lastSlash = dir.find_last_of("\\/");
+            if (lastSlash != std::string::npos) {
+                dir = dir.substr(0, lastSlash);
+                std::string fullPath = dir + "\\" + path;
+                std::ifstream file2(fullPath.c_str(), std::ios::binary);
+                if (file2.is_open()) {
+                    std::ostringstream ss;
+                    ss << file2.rdbuf();
+                    out = ss.str();
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     // ── Parse raw HTTP request bytes ──────────────────────────────────────
